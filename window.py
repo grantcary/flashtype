@@ -1,8 +1,7 @@
 import pygame
-import random
 from time import time
 
-import words
+from words import get_word, rand_char
 
 W, H = 1280, 720
 FPS = 60
@@ -15,10 +14,7 @@ running = True
 pygame.font.init()
 my_font = pygame.font.SysFont('Monospace Bold', 75)
 
-c1, c2 = 'a', 'b'
-w = words.get_pair_words(c1, c2)
-r = random.randrange(len(w))
-test_word = w[r]
+test_word = get_word('a', 'b')
 
 alpha_surface = pygame.Surface((W, H))
 alpha_surface.fill((255, 0, 0))
@@ -27,7 +23,8 @@ alpha_surface.set_alpha(red_alpha)
 
 prev_char = None
 curr_char = None
-bigrams = []
+bigram = None
+bigram_time = 0.0
 errors = 0
 worst = ''
 new_word = True
@@ -46,7 +43,9 @@ while running:
                     reaction = time() - start_time
                     new_word = False
                 else:
-                    bigrams.append((round(time() - start_time, 3), (curr_char, test_word[0])))
+                    if (t := round(time() - start_time, 3)) > bigram_time:
+                        bigram_time = t
+                        bigram = (curr_char, test_word[0])
                     prev_char = curr_char
                     curr_char = test_word[0]
 
@@ -58,14 +57,14 @@ while running:
                 red_alpha = 255
                 errors += 1
 
-    if not test_word and len(w) > 1:
-        bigrams.sort(key=lambda x: x[0])
-        c1, c2 = bigrams[-1][1]
-        w = words.get_pair_words(c1, c2)
-        r = random.randrange(len(w))
-        test_word = w[r]
-        bigrams = []
-        worst = f'{c1}{c2}'
+    if not test_word:
+        c1, c2 = bigram
+        test_word = get_word(c1, c2)
+        while not test_word:
+            c1, c2 = rand_char(), rand_char()
+            test_word = get_word(c1, c2)
+        bigram_time = 0
+        worst = c1 + c2
 
         new_word = True
         start_time = time()
